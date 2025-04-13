@@ -1,5 +1,4 @@
 #include "ZCollision.h"
-#include "ZWaterbox.h"
 
 #include <cassert>
 #include <cstdint>
@@ -52,7 +51,6 @@ void ZCollisionHeader::ParseRawData()
 
 	vertices.reserve(numVerts);
 	polygons.reserve(numPolygons);
-	waterBoxes.reserve(numWaterBoxes);
 
 	offset_t currentPtr = vtxSegmentOffset;
 
@@ -86,7 +84,7 @@ void ZCollisionHeader::ParseRawData()
 		ZSurfaceType surfaceType(parent);
 		surfaceType.SetRawDataIndex(polyTypeDefSegmentOffset + (i * 8));
 		surfaceType.ParseRawData();
-		polygonTypes.push_back(surfaceType);
+		PolygonTypes.push_back(surfaceType);
 	}
 	// polygonTypes.push_back(
 	//	BitConverter::ToUInt64BE(rawData, polyTypeDefSegmentOffset + (i * 8)));
@@ -100,55 +98,38 @@ void ZCollisionHeader::ParseRawData()
 		// usually ordered. If for some reason the data was in some other funny
 		// order, this would probably break.
 		// The most common ordering is:
-		// - *BgCamInfo*
+		// - *CamData*
 		// - SurfaceType
 		// - CollisionPoly
 		// - Vertices
 		// - WaterBoxes
 		// - CollisionHeader
 		offset_t upperCameraBoundary = polyTypeDefSegmentOffset;
-		if (upperCameraBoundary == SEGMENTED_NULL)
+		if (upperCameraBoundary == 0)
 		{
 			upperCameraBoundary = polySegmentOffset;
 		}
-		if (upperCameraBoundary == SEGMENTED_NULL)
+		if (upperCameraBoundary == 0)
 		{
 			upperCameraBoundary = vtxSegmentOffset;
 		}
-		if (upperCameraBoundary == SEGMENTED_NULL)
+		if (upperCameraBoundary == 0)
 		{
 			upperCameraBoundary = waterBoxSegmentOffset;
 		}
-		if (upperCameraBoundary == SEGMENTED_NULL)
+		if (upperCameraBoundary == 0)
 		{
 			upperCameraBoundary = rawDataIndex;
-		}
-
-		// Sharp Ocarina places the CamDataEntries above the list so we need to calculate the number
-		// of cameras differently.
-		if (upperCameraBoundary < camDataSegmentOffset)
-		{
-			offset_t offset = camDataSegmentOffset;
-			while (rawData[offset] == 0x00 && rawData[offset + 0x4] == 0x02)
-			{
-				offset += 0x08;
-			}
-			upperCameraBoundary = offset;
 		}
 
 		camData =
 			new CameraDataList(parent, name, rawData, camDataSegmentOffset, upperCameraBoundary);
 	}
 
-	for (int32_t i = 0; i < numWaterBoxes; i++)
-	{
-		ZWaterbox waterbox(parent);
-
-		waterbox.SetRawDataIndex(waterBoxSegmentOffset +
-		                         (i * (Globals::Instance->game == ZGame::OOT_SW97 ? 12 : 16)));
-		waterbox.ParseRawData();
-		waterBoxes.emplace_back(waterbox);
-	}
+	for (uint16_t i = 0; i < numWaterBoxes; i++)
+		waterBoxes.push_back(WaterBoxHeader(
+			rawData,
+			waterBoxSegmentOffset + (i * (Globals::Instance->game == ZGame::OOT_SW97 ? 12 : 16))));
 }
 
 void ZCollisionHeader::DeclareReferences(const std::string& prefix)
@@ -172,11 +153,9 @@ void ZCollisionHeader::DeclareReferences(const std::string& prefix)
 			}
 		}
 
-		parent->AddDeclarationArray(waterBoxSegmentOffset, DeclarationAlignment::Align4,
-		                            waterBoxes[0].GetRawDataSize() * waterBoxes.size(),
-		                            waterBoxes[0].GetSourceTypeName().c_str(),
-		                            StringHelper::Sprintf("%sWaterBoxes", auxName.c_str()),
-		                            waterBoxes.size(), declaration);
+		parent->AddDeclarationArray(
+			waterBoxSegmentOffset, DeclarationAlignment::Align4, 16 * waterBoxes.size(), "WaterBox",
+			StringHelper::Sprintf("%sWaterBoxes", auxName.c_str()), waterBoxes.size(), declaration);
 	}
 
 	if (polygons.size() > 0)
@@ -187,7 +166,8 @@ void ZCollisionHeader::DeclareReferences(const std::string& prefix)
 		{
 			for (size_t i = 0; i < polygons.size(); i++)
 			{
-				declaration += StringHelper::Sprintf("\t%s,", polygons[i].GetBodySourceCode().c_str());
+				declaration +=
+					StringHelper::Sprintf("\t%s,", polygons[i].GetBodySourceCode().c_str());
 				if (i + 1 < polygons.size())
 					declaration += "\n";
 			}
@@ -200,17 +180,17 @@ void ZCollisionHeader::DeclareReferences(const std::string& prefix)
 	}
 
 	declaration.clear();
-	for (const auto& polyType : polygonTypes)
+	for (const auto& polyType : PolygonTypes)
 	{
 		declaration += StringHelper::Sprintf("\t%s,", polyType.GetBodySourceCode().c_str());
 	}
 
 	if (polyTypeDefAddress != SEGMENTED_NULL)
 		parent->AddDeclarationArray(polyTypeDefSegmentOffset, DeclarationAlignment::Align4,
-		                            polygonTypes.size() * 8,
-		                            polygonTypes[0].GetSourceTypeName().c_str(),
+		                            PolygonTypes.size() * 8,
+		                            PolygonTypes[0].GetSourceTypeName().c_str(),
 		                            StringHelper::Sprintf("%sSurfaceType", auxName.c_str()),
-		                            polygonTypes.size(), declaration);
+		                            PolygonTypes.size(), declaration);
 
 	declaration.clear();
 
@@ -253,38 +233,27 @@ std::string ZCollisionHeader::GetBodySourceCode() const
 
 	std::string vtxName;
 	Globals::Instance->GetSegmentedPtrName(vtxAddress, parent, "Vec3s", vtxName, parent->workerID);
-
-	if (numVerts > 0)
-		declaration +=
-			StringHelper::Sprintf("\tARRAY_COUNT(%s), %s,\n", vtxName.c_str(), vtxName.c_str());
-	else
-		declaration += StringHelper::Sprintf("\t%i, %s,\n", numVerts, vtxName.c_str());
+	declaration += StringHelper::Sprintf("\t%i,\n\t%s,\n", numVerts, vtxName.c_str());
 
 	std::string polyName;
-	Globals::Instance->GetSegmentedPtrName(polyAddress, parent, "CollisionPoly", polyName, parent->workerID);
-
-	if (numPolygons > 0)
-		declaration +=
-			StringHelper::Sprintf("\tARRAY_COUNT(%s), %s,\n", polyName.c_str(), polyName.c_str());
-	else
-		declaration += StringHelper::Sprintf("\t%i, %s,\n", numPolygons, polyName.c_str());
+	Globals::Instance->GetSegmentedPtrName(polyAddress, parent, "CollisionPoly", polyName,
+	                                       parent->workerID);
+	declaration += StringHelper::Sprintf("\t%i,\n\t%s,\n", numPolygons, polyName.c_str());
 
 	std::string surfaceName;
-	Globals::Instance->GetSegmentedPtrName(polyTypeDefAddress, parent, "SurfaceType", surfaceName, parent->workerID);
+	Globals::Instance->GetSegmentedPtrName(polyTypeDefAddress, parent, "SurfaceType", surfaceName,
+	                                       parent->workerID);
 	declaration += StringHelper::Sprintf("\t%s,\n", surfaceName.c_str());
 
 	std::string camName;
-	Globals::Instance->GetSegmentedPtrName(camDataAddress, parent, "BgCamInfo", camName, parent->workerID);
+	Globals::Instance->GetSegmentedPtrName(camDataAddress, parent, "CamData", camName,
+	                                       parent->workerID);
 	declaration += StringHelper::Sprintf("\t%s,\n", camName.c_str());
 
 	std::string waterBoxName;
-	Globals::Instance->GetSegmentedPtrName(waterBoxAddress, parent, "WaterBox", waterBoxName, parent->workerID);
-
-	if (numWaterBoxes > 0)
-		declaration += StringHelper::Sprintf("\tARRAY_COUNT(%s), %s\n", waterBoxName.c_str(),
-		                                     waterBoxName.c_str());
-	else
-		declaration += StringHelper::Sprintf("\t%i, %s\n", numWaterBoxes, waterBoxName.c_str());
+	Globals::Instance->GetSegmentedPtrName(waterBoxAddress, parent, "WaterBox", waterBoxName,
+	                                       parent->workerID);
+	declaration += StringHelper::Sprintf("\t%i,\n\t%s\n", numWaterBoxes, waterBoxName.c_str());
 
 	return declaration;
 }
@@ -308,7 +277,7 @@ size_t ZCollisionHeader::GetRawDataSize() const
 {
 	return 44;
 }
-#if 0
+
 WaterBoxHeader::WaterBoxHeader(const std::vector<uint8_t>& rawData, uint32_t rawDataIndex)
 {
 	xMin = BitConverter::ToInt16BE(rawData, rawDataIndex + 0);
@@ -328,7 +297,7 @@ std::string WaterBoxHeader::GetBodySourceCode() const
 	return StringHelper::Sprintf("%i, %i, %i, %i, %i, 0x%08X", xMin, ySurface, zMin, xLength,
 	                             zLength, properties);
 }
-#endif
+
 CameraDataList::CameraDataList(ZFile* parent, const std::string& prefix,
                                const std::vector<uint8_t>& rawData, offset_t rawDataIndex,
                                offset_t upperCameraBoundary)
@@ -340,93 +309,73 @@ CameraDataList::CameraDataList(ZFile* parent, const std::string& prefix,
 	assert(numElements < 10000);
 
 	offset_t cameraPosDataSeg = rawDataIndex;
-	uint32_t numDataTotal;
-	uint32_t cameraPosDataSegEnd = rawDataIndex;
-	bool isSharpOcarina = false;
-
 	for (size_t i = 0; i < numElements; i++)
 	{
-		CameraDataEntry entry;
+		CameraDataEntry* entry = new CameraDataEntry();
 
-		entry.cameraSType =
+		entry->cameraSType =
 			BitConverter::ToInt16BE(rawData, rawDataIndex + (entries.size() * 8) + 0);
-		entry.numData = BitConverter::ToInt16BE(rawData, rawDataIndex + (entries.size() * 8) + 2);
-		entry.cameraPosDataSeg =
+		entry->numData = BitConverter::ToInt16BE(rawData, rawDataIndex + (entries.size() * 8) + 2);
+		entry->cameraPosDataSeg =
 			BitConverter::ToInt32BE(rawData, rawDataIndex + (entries.size() * 8) + 4);
 
-		if (entry.cameraPosDataSeg != 0 && GETSEGNUM(entry.cameraPosDataSeg) != SEGMENT_SCENE)
+		if (entry->cameraPosDataSeg != 0 && GETSEGNUM(entry->cameraPosDataSeg) != SEGMENT_SCENE)
 		{
 			cameraPosDataSeg = rawDataIndex + (entries.size() * 8);
 			break;
 		}
 
-		if (rawDataIndex > GETSEGOFFSET(entry.cameraPosDataSeg))
-		{
-			if (entry.cameraPosDataSeg != 0 &&
-			    cameraPosDataSeg > GETSEGOFFSET(entry.cameraPosDataSeg))
-				cameraPosDataSeg = GETSEGOFFSET(entry.cameraPosDataSeg);
-		}
-		else
-		{
-			// Sharp Ocarina will place the cam data after the list as opposed to the original maps
-			// which have it before.
-			isSharpOcarina = true;
-			cameraPosDataSeg = rawDataIndex + (numElements * 0x8);
-			if (cameraPosDataSegEnd < GETSEGOFFSET(entry.cameraPosDataSeg))
-				cameraPosDataSegEnd = GETSEGOFFSET(entry.cameraPosDataSeg);
-		}
+		if (entry->cameraPosDataSeg != 0 && cameraPosDataSeg > (entry->cameraPosDataSeg & 0xFFFFFF))
+			cameraPosDataSeg = (entry->cameraPosDataSeg & 0xFFFFFF);
 
-		entries.emplace_back(entry);
+		entries.push_back(entry);
 	}
 
 	// Setting cameraPosDataAddr to rawDataIndex give a pos list length of 0
-	uint32_t cameraPosDataOffset = GETSEGOFFSET(cameraPosDataSeg);
+	uint32_t cameraPosDataOffset = cameraPosDataSeg & 0xFFFFFF;
 	for (size_t i = 0; i < entries.size(); i++)
 	{
 		char camSegLine[2048];
 
-		if (entries[i].cameraPosDataSeg != 0)
+		if (entries[i]->cameraPosDataSeg != 0)
 		{
-			uint32_t index =
-				(GETSEGOFFSET(entries[i].cameraPosDataSeg) - cameraPosDataOffset) / 0x6;
-			snprintf(camSegLine, 2048, "&%sCamPosData[%i]", prefix.c_str(), index);
+			int32_t index =
+				((entries[i]->cameraPosDataSeg & 0x00FFFFFF) - cameraPosDataOffset) / 0x6;
+			sprintf(camSegLine, "&%sCamPosData[%i]", prefix.c_str(), index);
 		}
 		else
-			snprintf(camSegLine, 2048, "NULL");
+			sprintf(camSegLine, "NULL");
 
 		declaration +=
-			StringHelper::Sprintf("    { 0x%04X, %i, %s },", entries[i].cameraSType,
-		                          entries[i].numData, camSegLine, rawDataIndex + (i * 8));
+			StringHelper::Sprintf("    { 0x%04X, %i, %s },", entries[i]->cameraSType,
+		                          entries[i]->numData, camSegLine, rawDataIndex + (i * 8));
 
 		if (i < entries.size() - 1)
 			declaration += "\n";
 	}
 
 	parent->AddDeclarationArray(
-		rawDataIndex, DeclarationAlignment::Align4, entries.size() * 8, "BgCamInfo",
+		rawDataIndex, DeclarationAlignment::Align4, entries.size() * 8, "CamData",
 		StringHelper::Sprintf("%sCamDataList", prefix.c_str(), rawDataIndex), entries.size(),
 		declaration);
 
-	if (!isSharpOcarina)
-		numDataTotal = (rawDataIndex - cameraPosDataOffset) / 0x6;
-	else
-		numDataTotal = ((cameraPosDataSegEnd - cameraPosDataSeg) + 18) / 0x6;
+	uint32_t numDataTotal = (rawDataIndex - cameraPosDataOffset) / 0x6;
 
 	if (numDataTotal > 0)
 	{
 		declaration.clear();
-		cameraPositionData.reserve(numDataTotal);
 		for (uint32_t i = 0; i < numDataTotal; i++)
 		{
-			CameraPositionData data = CameraPositionData(rawData, cameraPosDataOffset + (i * 6));
+			CameraPositionData* data =
+				new CameraPositionData(rawData, cameraPosDataOffset + (i * 6));
+			cameraPositionData.push_back(data);
 
-			declaration += StringHelper::Sprintf("\t{ %6i, %6i, %6i },", data.x, data.y, data.z);
-			cameraPositionData.emplace_back(data);
+			declaration += StringHelper::Sprintf("\t{ %6i, %6i, %6i },", data->x, data->y, data->z);
 			if (i + 1 < numDataTotal)
 				declaration += "\n";
 		}
 
-		uint32_t cameraPosDataIndex = GETSEGOFFSET(cameraPosDataSeg);
+		int32_t cameraPosDataIndex = GETSEGOFFSET(cameraPosDataSeg);
 		uint32_t entrySize = numDataTotal * 0x6;
 		parent->AddDeclarationArray(cameraPosDataIndex, DeclarationAlignment::Align4, entrySize,
 		                            "Vec3s", StringHelper::Sprintf("%sCamPosData", prefix.c_str()),
@@ -436,11 +385,11 @@ CameraDataList::CameraDataList(ZFile* parent, const std::string& prefix,
 
 CameraDataList::~CameraDataList()
 {
-	//for (auto entry : entries)
-	//	delete entry;
-//
-	//for (auto camPosData : cameraPositionData)
-	//	delete camPosData;
+	for (auto entry : entries)
+		delete entry;
+
+	for (auto camPosData : cameraPositionData)
+		delete camPosData;
 }
 
 CameraPositionData::CameraPositionData(const std::vector<uint8_t>& rawData, uint32_t rawDataIndex)

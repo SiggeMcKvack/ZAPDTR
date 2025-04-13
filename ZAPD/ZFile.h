@@ -1,13 +1,11 @@
 #pragma once
-#define NO_GDI
-#define WIN32_LEAN_AND_MEAN
+
 #include <string>
 #include <vector>
 
 #include "ZSymbol.h"
 #include "ZTexture.h"
 #include "tinyxml2.h"
-#undef FindResource
 
 enum class ZFileMode
 {
@@ -44,8 +42,6 @@ public:
 	uint32_t segment = 0x80;
 	uint32_t baseAddress, rangeStart, rangeEnd;
 	bool isExternalFile = false;
-	// Whether to make defines for texture dimensions, and possibly more in future
-	bool makeDefines = false;
 
 	ZFile(const fs::path& nOutPath, const std::string& nName);
 	ZFile(ZFileMode nMode, tinyxml2::XMLElement* reader, const fs::path& nBasePath,
@@ -82,9 +78,6 @@ public:
 	Declaration* AddDeclarationIncludeArray(offset_t address, std::string& includePath, size_t size,
 	                                        const std::string& varType, const std::string& varName,
 	                                        size_t arrayItemCnt);
-	Declaration* AddDeclarationIncludeArray(offset_t address, std::string& includePath, size_t size,
-	                                        const std::string& varType, const std::string& varName,
-	                                        const std::string& defines, size_t arrayItemCnt);
 
 	bool GetDeclarationPtrName(segptr_t segAddress, const std::string& expectedType,
 	                           std::string& declName) const;
@@ -95,7 +88,6 @@ public:
 	Declaration* GetDeclaration(offset_t address) const;
 	Declaration* GetDeclarationRanged(offset_t address) const;
 	bool HasDeclaration(offset_t address);
-	size_t GetDeclarationSizeFromNeighbor(uint32_t declarationAddress);
 
 	std::string GetHeaderInclude() const;
 	std::string GetZRoomHeaderInclude() const;
@@ -138,9 +130,8 @@ protected:
 	void DeclareResourceSubReferences();
 	void GenerateSourceFiles();
 	void GenerateSourceHeaderFiles();
-	bool DeclarationSanityChecks(uint32_t address, const std::string& varName);
+	bool AddDeclarationChecks(uint32_t address, const std::string& varName);
 	std::string ProcessDeclarations();
-	void MergeNeighboringDeclarations();
 	void ProcessDeclarationText(Declaration* decl);
 	std::string ProcessExterns();
 

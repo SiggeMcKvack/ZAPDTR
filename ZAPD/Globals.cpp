@@ -20,7 +20,7 @@ Globals::Globals()
 	profile = false;
 	useLegacyZDList = false;
 	useExternalResources = true;
-	singleThreaded = false;
+	singleThreaded = true;
 	verbosity = VerbosityLevel::VERBOSITY_SILENT;
 	outputPath = Directory::GetCurrentDirectory();
 }
@@ -46,10 +46,7 @@ void Globals::AddSegment(int32_t segment, ZFile* file, int workerID)
 
 		if (std::find(worker->segments.begin(), worker->segments.end(), segment) ==
 		    worker->segments.end())
-		{
 			worker->segments.push_back(segment);
-			worker->segmentFiles.push_back(file);
-		}
 		if (worker->segmentRefFiles.find(segment) == worker->segmentRefFiles.end())
 			worker->segmentRefFiles[segment] = std::vector<ZFile*>();
 
@@ -58,10 +55,7 @@ void Globals::AddSegment(int32_t segment, ZFile* file, int workerID)
 	else
 	{
 		if (std::find(segments.begin(), segments.end(), segment) == segments.end())
-		{
 			segments.push_back(segment);
-			segmentFiles.push_back(file);
-		}
 		if (cfg.segmentRefFiles.find(segment) == cfg.segmentRefFiles.end())
 			cfg.segmentRefFiles[segment] = std::vector<ZFile*>();
 
@@ -87,7 +81,7 @@ ZFile* Globals::GetSegment(int32_t segment, int workerID)
 			int idx = std::find(workerData[workerID]->segments.begin(),
 			                    workerData[workerID]->segments.end(), segment) -
 			          workerData[workerID]->segments.begin();
-			return workerData[workerID]->segmentFiles[idx];
+			return workerData[workerID]->files[idx];
 		}
 		else
 			return nullptr;
@@ -97,7 +91,7 @@ ZFile* Globals::GetSegment(int32_t segment, int workerID)
 		if (HasSegment(segment, workerID))
 		{
 			int idx = std::find(segments.begin(), segments.end(), segment) - segments.begin();
-			return segmentFiles[idx];
+			return files[idx];
 		}
 		else
 			return nullptr;
@@ -196,10 +190,9 @@ std::vector<uint8_t> Globals::GetBaseromFile(std::string fileName)
 }
 
 bool Globals::GetSegmentedPtrName(segptr_t segAddress, ZFile* currentFile,
-                                  const std::string& expectedType, std::string& declName,
-                                  int workerID, bool warnIfNotFound)
+                                  const std::string& expectedType, std::string& declName, int workerID)
 {
-	if (segAddress == SEGMENTED_NULL)
+	if (segAddress == 0)
 	{
 		declName = "NULL";
 		return true;
@@ -276,18 +269,14 @@ bool Globals::GetSegmentedPtrName(segptr_t segAddress, ZFile* currentFile,
 	}
 
 	declName = StringHelper::Sprintf("0x%08X", segAddress);
-	if (warnIfNotFound)
-	{
-		WarnHardcodedPointer(segAddress, currentFile, nullptr, -1);
-	}
 	return false;
 }
 
 bool Globals::GetSegmentedArrayIndexedName(segptr_t segAddress, size_t elementSize,
                                            ZFile* currentFile, const std::string& expectedType,
-                                           std::string& declName, int workerID, bool warnIfNotFound)
+                                           std::string& declName, int workerID)
 {
-	if (segAddress == SEGMENTED_NULL)
+	if (segAddress == 0)
 	{
 		declName = "NULL";
 		return true;
@@ -319,34 +308,7 @@ bool Globals::GetSegmentedArrayIndexedName(segptr_t segAddress, size_t elementSi
 	}
 
 	declName = StringHelper::Sprintf("0x%08X", segAddress);
-	if (warnIfNotFound)
-	{
-		WarnHardcodedPointer(segAddress, currentFile, nullptr, -1);
-	}
 	return false;
-}
-
-void Globals::WarnHardcodedPointer(segptr_t segAddress, ZFile* currentFile, ZResource* res,
-                                   offset_t currentOffset)
-{
-	uint8_t segment = GETSEGNUM(segAddress);
-
-	if ((segment >= 2 && segment <= 6) || segment == 0x80)
-	{
-		std::string errorHeader = "A hardcoded pointer was found";
-		std::string errorBody = StringHelper::Sprintf("Pointer: 0x%08X", segAddress);
-
-		HANDLE_WARNING_RESOURCE(WarningType::HardcodedPointer, currentFile, res, currentOffset,
-		                        errorHeader, errorBody);
-	}
-	else
-	{
-		std::string errorHeader = "A general purpose hardcoded pointer was found";
-		std::string errorBody = StringHelper::Sprintf("Pointer: 0x%08X", segAddress);
-
-		HANDLE_WARNING_RESOURCE(WarningType::HardcodedGenericPointer, currentFile, res,
-		                        currentOffset, errorHeader, errorBody);
-	}
 }
 
 ExternalFile::ExternalFile(fs::path nXmlPath, fs::path nOutPath)

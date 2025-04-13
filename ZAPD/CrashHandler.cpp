@@ -8,7 +8,6 @@
 #endif
 
 #include <array>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -51,7 +50,7 @@ static std::array<const char* const, 14> crashEasterEgg = {
 	"\tOh! MY GOD!!",
 };
 
-#if HAS_POSIX == 1 && !defined(__ANDROID__)
+#if HAS_POSIX == 1
 void ErrorHandler(int sig)
 {
 	std::array<void*, 4096> arr;
@@ -194,15 +193,13 @@ LONG seh_filter(_EXCEPTION_POINTERS* ex)
 
 void CrashHandler_Init()
 {
-	#if 0
 #if HAS_POSIX == 1
 	signal(SIGSEGV, ErrorHandler);
 	signal(SIGABRT, ErrorHandler);
 #elif defined(_MSC_VER)
 	SetUnhandledExceptionFilter(seh_filter);
-#elif !defined(__ANDROID__)
+#else
 	HANDLE_WARNING(WarningType::Always,
 	               "tried to set error handler, but this ZAPD build lacks support for one", "");
 #endif
-	#endif
 }

@@ -29,7 +29,7 @@ ZResource::ZResource(ZFile* nParent)
 	RegisterOptionalAttribute("Static", "Global");
 }
 
-void ZResource::ExtractWithXML(tinyxml2::XMLElement* reader, offset_t nRawDataIndex)
+void ZResource::ExtractFromXML(tinyxml2::XMLElement* reader, offset_t nRawDataIndex)
 {
 	rawDataIndex = nRawDataIndex;
 	declaredInXml = true;
@@ -288,7 +288,7 @@ void ZResource::GetSourceOutputCode([[maybe_unused]] const std::string& prefix)
 		if (decl == nullptr || decl->isPlaceholder)
 			decl = DeclareVar(prefix, bodyStr);
 		else
-			decl->declBody = bodyStr;
+			decl->text = bodyStr;
 
 		// OTRTODO: This is a hack and we need something more elegant in the future...
 		if (GetResourceType() == ZResourceType::Array)
@@ -332,10 +332,7 @@ std::string ZResource::GetSourceOutputHeader([[maybe_unused]] const std::string&
 
 		std::string xmlPath = StringHelper::Replace(parent->GetXmlFilePath().string(), "\\", "/");
 
-		if (StringHelper::Contains(outName, "_room_") ||
-		    StringHelper::Contains(outName, "_scene") ||
-		    (StringHelper::Contains(parent->GetXmlFilePath().string(), "/scenes/") ||
-		     StringHelper::Contains(parent->GetXmlFilePath().string(), "\\scenes\\"))) {
+		if (StringHelper::Contains(outName, "_room_") || StringHelper::Contains(outName, "_scene")) {
 			prefix = "scenes/shared";
 
 			// Regex for xml paths that are dungeons with unique MQ variants (only the main dungeon, not boss rooms)

@@ -80,6 +80,13 @@ void ZAudio::ParseXML(tinyxml2::XMLElement* reader)
 	}
 }
 
+void ZAudio::DecodeADPCMSample(SampleEntry* sample)
+{
+	int16_t buffer[1024 * 128];
+
+	int16_t* out = &buffer[0];
+}
+
 std::vector<AdsrEnvelope*> ZAudio::ParseEnvelopeData(std::vector<uint8_t> audioBank, std::vector<uint8_t> audioTable, int envelopeOffset, int baseOffset)
 {
 	std::vector<AdsrEnvelope*> result;
@@ -109,15 +116,9 @@ SoundFontEntry* ZAudio::ParseSoundFontEntry(std::vector<uint8_t> audioBank,
                                             int baseOffset)
 {
 	SoundFontEntry* soundFont = new SoundFontEntry();
-
-	int sampleOffset = BitConverter::ToInt32BE(audioBank, soundFontOffset + 0) + baseOffset;
-
-	if (sampleOffset == 0)
-		return nullptr;
-
 	soundFont->sampleEntry = ParseSampleEntry(
 		audioBank, audioTable, audioSampleBankEntry, bankIndex,
-		sampleOffset, baseOffset);
+		BitConverter::ToInt32BE(audioBank, soundFontOffset + 0) + baseOffset, baseOffset);
 	soundFont->tuning = BitConverter::ToFloatBE(audioBank, soundFontOffset + 4);
 
 	return soundFont;
@@ -235,7 +236,7 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 	int currentOffset = BitConverter::ToInt32BE(codeData, ptr) + ptr;
 	for (int i = 0; i < numDrums; i++)
 	{
-		DrumEntry drum = {0};
+		DrumEntry drum;
 
 		int samplePtr = BitConverter::ToInt32BE(codeData, currentOffset);
 
@@ -252,8 +253,8 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 			drum.tuning = BitConverter::ToFloatBE(codeData, samplePtr + 8);
 			drum.env = ParseEnvelopeData(codeData, audioTable, BitConverter::ToInt32BE(codeData, samplePtr + 12) + ptr, ptr);
 		}
-		entry.drums.push_back(drum);
 
+		entry.drums.push_back(drum);
 
 		currentOffset += 4;
 	}
@@ -264,9 +265,7 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 		SoundFontEntry* sfx;
 		sfx = ParseSoundFontEntry(codeData, audioTable, audioSampleBank[sampleBankId1], sampleBankId1,
 		                          currentOffset, ptr);
-
-		//if (sfx != nullptr)
-			entry.soundEffects.push_back(sfx);
+		entry.soundEffects.push_back(sfx);
 
 		currentOffset += 8;
 	}
@@ -302,9 +301,8 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 				instrument.highNotesSound = ParseSoundFontEntry(
 					codeData, audioTable, audioSampleBank[sampleBankId1], sampleBankId1, currentOffset + 24, ptr);
 		}
-		// Interesting audio bug if you put this next line in the if block
-		entry.instruments.push_back(instrument);
 
+		entry.instruments.push_back(instrument);
 	}
 }
 

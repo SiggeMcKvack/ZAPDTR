@@ -40,10 +40,9 @@ set(Header_Files__Yaz0
 source_group("Header Files\\Yaz0" FILES ${Header_Files__Yaz0})
 
 set(Header_Files__Z64
-    "OtherStructs/Cutscene_Common.h"
-    "OtherStructs/CutsceneMM_Commands.h"
-    "OtherStructs/CutsceneOoT_Commands.h"
     "OtherStructs/SkinLimbStructs.h"
+    "OtherStructs/CutsceneMM_Commands.h"
+    "OtherStructs/Cutscene_Commands.h"
     "ZAnimation.h"
     "ZActorList.h"
     "ZArray.h"
@@ -52,8 +51,6 @@ set(Header_Files__Z64
     "ZBlob.h"
     "ZCollision.h"
     "ZCollisionPoly.h"
-    "ZCKeyFrame.h"
-    "ZCkeyFrameAnim.h"	
     "ZCutscene.h"
     "ZDisplayList.h"
     "ZFile.h"
@@ -61,7 +58,6 @@ set(Header_Files__Z64
     "ZMtx.h"
     "ZPath.h"
     "ZPlayerAnimationData.h"
-    "ZPointer.h"
     "ZResource.h"
     "ZRom.h"
     "ZScalar.h"
@@ -70,11 +66,9 @@ set(Header_Files__Z64
     "ZString.h"
     "ZSymbol.h"
     "ZText.h"
-	"ZTextMM.cpp"
     "ZTexture.h"
     "ZTextureAnimation.h"
     "ZVector.h"
-    "ZWaterbox.h"
     "ZVtx.h"
 )
 source_group("Header Files\\Z64" FILES ${Header_Files__Z64})
@@ -87,6 +81,7 @@ source_group("Header Files\\Z64\\ZRoom" FILES ${Header_Files__Z64__ZRoom})
 
 set(Header_Files__Z64__ZRoom__Commands
     "ZRoom/Commands/EndMarker.h"
+    "ZRoom/Commands/SetActorCutsceneList.h"
     "ZRoom/Commands/SetActorList.h"
     "ZRoom/Commands/SetAlternateHeaders.h"
     "ZRoom/Commands/SetAnimatedMaterialList.h"
@@ -94,7 +89,6 @@ set(Header_Files__Z64__ZRoom__Commands
     "ZRoom/Commands/SetCollisionHeader.h"
     "ZRoom/Commands/SetCsCamera.h"
     "ZRoom/Commands/SetCutscenes.h"
-    "ZRoom/Commands/SetCutsceneEntryList.cpp"
     "ZRoom/Commands/SetEchoSettings.h"
     "ZRoom/Commands/SetEntranceList.h"
     "ZRoom/Commands/SetExitList.h"
@@ -153,10 +147,9 @@ set(Source_Files__Yaz0
 source_group("Source Files\\Yaz0" FILES ${Source_Files__Yaz0})
 
 set(Source_Files__Z64
-    "OtherStructs/Cutscene_Common.cpp"
-    "OtherStructs/CutsceneMM_Commands.cpp"
-    "OtherStructs/CutsceneOoT_Commands.cpp"
     "OtherStructs/SkinLimbStructs.cpp"
+    "OtherStructs/CutsceneMM_Commands.cpp"
+    "OtherStructs/Cutscene_Commands.cpp"
     "ZAnimation.cpp"
     "ZActorList.cpp"
     "ZArray.cpp"
@@ -166,8 +159,6 @@ set(Source_Files__Z64
     "ZBlob.cpp"
     "ZCollision.cpp"
     "ZCollisionPoly.cpp"
-    "ZCKeyFrame.cpp"
-    "ZCKeyFrameAnim.cpp"
     "ZCutscene.cpp"
     "ZDisplayList.cpp"
     "ZFile.cpp"
@@ -175,7 +166,6 @@ set(Source_Files__Z64
     "ZMtx.cpp"
     "ZPath.cpp"
     "ZPlayerAnimationData.cpp"
-    "ZPointer.cpp"
     "ZResource.cpp"
     "ZRom.cpp"
     "ZScalar.cpp"
@@ -184,11 +174,9 @@ set(Source_Files__Z64
     "ZString.cpp"
     "ZSymbol.cpp"
     "ZText.cpp"
-	"ZTextMM.cpp"
     "ZTexture.cpp"
     "ZTextureAnimation.cpp"
     "ZVector.cpp"
-    "ZWaterbox.cpp"
     "ZVtx.cpp"
 )
 source_group("Source Files\\Z64" FILES ${Source_Files__Z64})
@@ -201,6 +189,7 @@ source_group("Source Files\\Z64\\ZRoom" FILES ${Source_Files__Z64__ZRoom})
 
 set(Source_Files__Z64__ZRoom__Commands
     "ZRoom/Commands/EndMarker.cpp"
+    "ZRoom/Commands/SetActorCutsceneList.cpp"
     "ZRoom/Commands/SetActorList.cpp"
     "ZRoom/Commands/SetAlternateHeaders.cpp"
     "ZRoom/Commands/SetAnimatedMaterialList.cpp"
@@ -208,7 +197,6 @@ set(Source_Files__Z64__ZRoom__Commands
     "ZRoom/Commands/SetCollisionHeader.cpp"
     "ZRoom/Commands/SetCsCamera.cpp"
     "ZRoom/Commands/SetCutscenes.cpp"
-    "ZRoom/Commands/SetCutsceneEntryList.cpp"
     "ZRoom/Commands/SetEchoSettings.cpp"
     "ZRoom/Commands/SetEntranceList.cpp"
     "ZRoom/Commands/SetExitList.cpp"
@@ -288,7 +276,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		set_target_properties(${PROJECT_NAME} PROPERTIES
 			INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
 		)
-	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
+	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
 		set_target_properties(${PROJECT_NAME} PROPERTIES
 			INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
 		)
@@ -304,7 +292,7 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 foreach(ZTarget ${PROJECT_NAME} ZAPD)
 	get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${ZTarget} PROPERTY MSVC_RUNTIME_LIBRARY)
-	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32" OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
 		string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
 			$<$<CONFIG:Debug>:
 				MultiThreadedDebug
@@ -328,7 +316,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 			"_MBCS"
 			STORMLIB_NO_AUTO_LINK
 		)
-	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
+	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
 		target_compile_definitions(${PROJECT_NAME} PRIVATE
 			"$<$<CONFIG:Debug>:"
 				"_CRT_SECURE_NO_WARNINGS"
@@ -346,27 +334,6 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	set(CMAKE_FIND_FRAMEWORK LAST)
 endif()
-
-################################################################################
-# Find/download PNG for Android
-################################################################################
-if (CMAKE_SYSTEM_NAME STREQUAL "Android")
-    find_package(PNG QUIET)
-    if (NOT ${PNG_FOUND})
-    	include(FetchContent)
-        FetchContent_Declare(
-            png
-	    GIT_REPOSITORY https://github.com/glennrp/libpng.git
-	    GIT_TAG v1.6.37
-	    OVERRIDE_FIND_PACKAGE
-    	)
-        message("PNG not found. Downloading now...")
-        FetchContent_MakeAvailable(png)
-        message("PNG downloaded to " ${FETCHCONTENT_BASE_DIR}/png-src)
-        set (PNG_PNG_INCLUDE_DIR ${png_BINARY_DIR} ${png_SOURCE_DIR})
-    endif()
-endif()
-
 find_package(PNG REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -394,7 +361,7 @@ if(MSVC)
             ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
             ${DEFAULT_CXX_EXCEPTION_HANDLING}
         )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
+    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
         target_compile_options(${PROJECT_NAME} PRIVATE
             $<$<CONFIG:Debug>:
                 /Od
@@ -422,7 +389,7 @@ if(MSVC)
             >
             /DEBUG:FULL
         )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
+    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
         target_link_options(${PROJECT_NAME} PRIVATE
             $<$<CONFIG:Debug>:
                 /PROFILE
@@ -471,7 +438,7 @@ add_dependencies(${PROJECT_NAME}
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-#	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
 		set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 		set(ADDITIONAL_LIBRARY_DEPENDENCIES
 			"-WHOLEARCHIVE:$<TARGET_LINKER_FILE_DIR:OTRExporter>/$<TARGET_LINKER_FILE_NAME:OTRExporter>"
@@ -479,7 +446,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 			storm
 			PNG::PNG
 		)
-#	endif()
+	endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	set(THREADS_PREFER_PTHREAD_FLAG ON)
 	find_package(Threads REQUIRED)
@@ -497,15 +464,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
                -Wl,--whole-archive $<TARGET_LINKER_FILE_DIR:OTRExporter>/$<TARGET_LINKER_FILE_NAME:OTRExporter> -Wl,--no-whole-archive
                "libultraship;"
                PNG::PNG
-               Threads::Threads
-       )
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
-       set(THREADS_PREFER_PTHREAD_FLAG ON)
-       find_package(Threads REQUIRED)
-       set(ADDITIONAL_LIBRARY_DEPENDENCIES
-               -Wl,--whole-archive $<TARGET_LINKER_FILE_DIR:OTRExporter>/$<TARGET_LINKER_FILE_NAME:OTRExporter> -Wl,--no-whole-archive
-               "libultraship;"
-               png
                Threads::Threads
        )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")

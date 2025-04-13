@@ -230,7 +230,7 @@ public:
 	ZDisplayList(ZFile* nParent);
 	~ZDisplayList();
 
-	void ExtractWithXML(tinyxml2::XMLElement* reader, uint32_t nRawDataIndex) override;
+	void ExtractFromXML(tinyxml2::XMLElement* reader, uint32_t nRawDataIndex) override;
 	void ExtractFromBinary(uint32_t nRawDataIndex, int32_t rawDataSize);
 
 	void ParseRawData() override;
@@ -250,9 +250,6 @@ public:
 	void DeclareReferences(const std::string& prefix) override;
 	std::string ProcessLegacy(const std::string& prefix);
 	std::string ProcessGfxDis(const std::string& prefix);
-
-	// Combines vertex lists from the vertices map which touch or intersect
-	void MergeConnectingVertexLists();
 
 	bool IsExternalResource() const override;
 	std::string GetExternalExtension() const override;

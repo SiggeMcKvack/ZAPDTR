@@ -5,7 +5,7 @@
 #include "ZDisplayList.h"
 #include "ZRoom/ZRoomCommand.h"
 
-class RoomShapeDListsEntry : public ZResource
+class PolygonDlist : public ZResource
 {
 public:
 	ZRoom* zRoom;
@@ -21,7 +21,7 @@ public:
 	ZDisplayList* opaDList = nullptr;  // Gfx*
 	ZDisplayList* xluDList = nullptr;  // Gfx*
 
-	RoomShapeDListsEntry(ZFile* nParent);
+	PolygonDlist(ZFile* nParent);
 
 	void ParseRawData() override;
 	void DeclareReferences(const std::string& prefix) override;
@@ -41,7 +41,7 @@ protected:
 	ZDisplayList* MakeDlist(segptr_t ptr, const std::string& prefix);
 };
 
-class RoomShapeImageMultiBgEntry : public ZResource
+class BgImage : public ZResource
 {
 public:
 	uint16_t unk_00;
@@ -60,9 +60,8 @@ public:
 
 	bool isSubStruct;
 
-	RoomShapeImageMultiBgEntry(ZFile* nParent);
-	RoomShapeImageMultiBgEntry(bool nIsSubStruct, const std::string& prefix, uint32_t nRawDataIndex,
-	                           ZFile* nParent);
+	BgImage(ZFile* nParent);
+	BgImage(bool nIsSubStruct, const std::string& prefix, uint32_t nRawDataIndex, ZFile* nParent);
 
 	void ParseRawData() override;
 
@@ -81,7 +80,7 @@ class PolygonTypeBase : public ZResource
 {
 public:
 	uint8_t type;
-	std::vector<RoomShapeDListsEntry> polyDLists;
+	std::vector<PolygonDlist> polyDLists;
 
 	PolygonTypeBase(ZFile* nParent, uint32_t nRawDataIndex, ZRoom* nRoom);
 
@@ -101,12 +100,12 @@ public:
 	segptr_t dlist;
 
 	// single
-	RoomShapeImageMultiBgEntry single;
+	BgImage single;
 
 	// multi
 	uint8_t count;
-	segptr_t list;  // RoomShapeImageMultiBgEntry*
-	std::vector<RoomShapeImageMultiBgEntry> multiList;
+	segptr_t list;  // BgImage*
+	std::vector<BgImage> multiList;
 
 	PolygonType1(ZFile* nParent, uint32_t nRawDataIndex, ZRoom* nRoom);
 
@@ -120,14 +119,14 @@ public:
 	size_t GetRawDataSize() const override;
 };
 
-class RoomShapeCullable : public PolygonTypeBase
+class PolygonType2 : public PolygonTypeBase
 {
 public:
 	uint8_t num;
 	segptr_t start;
 	segptr_t end;
 
-	RoomShapeCullable(ZFile* nParent, uint32_t nRawDataIndex, ZRoom* nRoom);
+	PolygonType2(ZFile* nParent, uint32_t nRawDataIndex, ZRoom* nRoom);
 
 	void ParseRawData() override;
 	void DeclareReferences(const std::string& prefix) override;

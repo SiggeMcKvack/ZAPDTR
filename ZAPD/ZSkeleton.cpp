@@ -194,7 +194,7 @@ std::string ZSkeleton::GetSourceTypeName() const
 	case ZSkeletonType::Flex:
 		return "FlexSkeletonHeader";
 	case ZSkeletonType::Curve:
-		return "CurveSkeletonHeader";
+		return "SkelCurveLimbList";
 	}
 
 	return "SkeletonHeader";
@@ -381,7 +381,7 @@ std::string ZLimbTable::GetBodySourceCode() const
 	return body;
 }
 
-std::string ZLimbTable::GetSourceOutputHeader([[maybe_unused]] const std::string& prefix, std::set<std::string>* nameSet)
+std::string ZLimbTable::GetSourceOutputHeader([[maybe_unused]] const std::string& prefix)
 {
 	if (limbNoneName == "" || limbMaxName == "" || enumName == "")
 	{

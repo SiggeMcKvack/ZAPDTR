@@ -5,79 +5,61 @@
 #include "Utils/StringHelper.h"
 
 Declaration::Declaration(offset_t nAddress, DeclarationAlignment nAlignment, size_t nSize,
-                         const std::string& nBody)
+                         const std::string& nText)
 {
 	address = nAddress;
 	alignment = nAlignment;
 	size = nSize;
-	declBody = nBody;
+	text = nText;
 }
 
-Declaration* Declaration::Create(offset_t declAddr, DeclarationAlignment declAlign, size_t declSize,
-                                 const std::string& declType, const std::string& declName,
-                                 const std::string& declBody)
+Declaration::Declaration(offset_t nAddress, DeclarationAlignment nAlignment, size_t nSize,
+                         const std::string& nVarType, const std::string& nVarName, bool nIsArray,
+                         const std::string& nText)
+	: Declaration(nAddress, nAlignment, nSize, nText)
 {
-	Declaration* decl = new Declaration(declAddr, declAlign, declSize, declBody);
-
-	decl->declType = declType;
-	decl->declName = declName;
-	decl->declBody = declBody;
-
-	return decl;
+	varType = nVarType;
+	varName = nVarName;
+	isArray = nIsArray;
 }
 
-Declaration* Declaration::CreateArray(offset_t declAddr, DeclarationAlignment declAlign,
-                                      size_t declSize, const std::string& declType,
-                                      const std::string& declName, const std::string& declBody,
-                                      size_t declArrayItemCnt, bool isDeclExternal)
+Declaration::Declaration(offset_t nAddress, DeclarationAlignment nAlignment, size_t nSize,
+                         const std::string& nVarType, const std::string& nVarName, bool nIsArray,
+                         size_t nArrayItemCnt, const std::string& nText)
+	: Declaration(nAddress, nAlignment, nSize, nText)
 {
-	Declaration* decl = new Declaration(declAddr, declAlign, declSize, declBody);
-
-	decl->declName = declName;
-	decl->declType = declType;
-	decl->arrayItemCnt = declArrayItemCnt;
-	decl->isExternal = isDeclExternal;
-	decl->isArray = true;
-
-	return decl;
+	varType = nVarType;
+	varName = nVarName;
+	isArray = nIsArray;
+	arrayItemCnt = nArrayItemCnt;
 }
 
-Declaration* Declaration::CreateArray(offset_t declAddr, DeclarationAlignment declAlign,
-                                      size_t declSize, const std::string& declType,
-                                      const std::string& declName, const std::string& declBody,
-                                      const std::string& declArrayItemCntStr, bool isDeclExternal)
+Declaration::Declaration(offset_t nAddress, DeclarationAlignment nAlignment, size_t nSize,
+                         const std::string& nVarType, const std::string& nVarName, bool nIsArray,
+                         const std::string& nArrayItemCntStr, const std::string& nText)
+	: Declaration(nAddress, nAlignment, nSize, nText)
 {
-	Declaration* decl = new Declaration(declAddr, declAlign, declSize, declBody);
-
-	decl->declName = declName;
-	decl->declType = declType;
-	decl->arrayItemCntStr = declArrayItemCntStr;
-	decl->isExternal = isDeclExternal;
-	decl->isArray = true;
-
-	return decl;
+	varType = nVarType;
+	varName = nVarName;
+	isArray = nIsArray;
+	arrayItemCntStr = nArrayItemCntStr;
 }
 
-Declaration* Declaration::CreateInclude(offset_t declAddr, const std::string& includePath,
-                                        size_t declSize, const std::string& declType,
-                                        const std::string& declName, const std::string& defines)
+Declaration::Declaration(offset_t nAddress, DeclarationAlignment nAlignment, size_t nSize,
+                         const std::string& nVarType, const std::string& nVarName, bool nIsArray,
+                         size_t nArrayItemCnt, const std::string& nText, bool nIsExternal)
+	: Declaration(nAddress, nAlignment, nSize, nVarType, nVarName, nIsArray, nArrayItemCnt, nText)
 {
-	Declaration* decl = new Declaration(declAddr, DeclarationAlignment::Align4, declSize, "");
-	decl->includePath = includePath;
-	decl->declType = declType;
-	decl->declName = declName;
-	decl->defines = defines;
-
-	return decl;
+	isExternal = nIsExternal;
 }
 
-Declaration* Declaration::CreatePlaceholder(offset_t declAddr, const std::string& declName)
+Declaration::Declaration(offset_t nAddress, const std::string& nIncludePath, size_t nSize,
+                         const std::string& nVarType, const std::string& nVarName)
+	: Declaration(nAddress, DeclarationAlignment::Align4, nSize, "")
 {
-	Declaration* decl = new Declaration(declAddr, DeclarationAlignment::Align4, 0, "");
-	decl->declName = declName;
-	decl->isPlaceholder = true;
-
-	return decl;
+	includePath = nIncludePath;
+	varType = nVarType;
+	varName = nVarName;
 }
 
 Declaration::~Declaration()
@@ -107,6 +89,9 @@ std::string Declaration::GetNormalDeclarationStr() const
 {
 	std::string output;
 
+	if (preText != "")
+		output += preText + "\n";
+
 	if (IsStatic())
 	{
 		output += "static ";
@@ -114,28 +99,27 @@ std::string Declaration::GetNormalDeclarationStr() const
 
 	if (isArray)
 	{
-		bool includeArraySize = (IsStatic() || forceArrayCnt);
-
-		if (includeArraySize)
+		if (arrayItemCntStr != "" && (IsStatic() || forceArrayCnt))
 		{
-			if (arrayItemCntStr != "")
-				output += StringHelper::Sprintf("%s %s[%s];\n", declType.c_str(), declName.c_str(),
-				                                arrayItemCntStr.c_str());
-			else
-				output += StringHelper::Sprintf("%s %s[%i] = {\n", declType.c_str(),
-				                                declName.c_str(), arrayItemCnt);
+			output += StringHelper::Sprintf("%s %s[%s];\n", varType.c_str(), varName.c_str(),
+			                                arrayItemCntStr.c_str());
+		}
+		else if (arrayItemCnt != 0 && (IsStatic() || forceArrayCnt))
+		{
+			output += StringHelper::Sprintf("%s %s[%i] = {\n", varType.c_str(), varName.c_str(),
+			                                arrayItemCnt);
 		}
 		else
 		{
-			output += StringHelper::Sprintf("%s %s[] = {\n", declType.c_str(), declName.c_str());
+			output += StringHelper::Sprintf("%s %s[] = {\n", varType.c_str(), varName.c_str());
 		}
 
-		output += declBody + "\n";
+		output += text + "\n";
 	}
 	else
 	{
-		output += StringHelper::Sprintf("%s %s = { ", declType.c_str(), declName.c_str());
-		output += declBody;
+		output += StringHelper::Sprintf("%s %s = { ", varType.c_str(), varName.c_str());
+		output += text;
 	}
 
 	if (output.back() == '\n')
@@ -143,7 +127,13 @@ std::string Declaration::GetNormalDeclarationStr() const
 	else
 		output += " };";
 
+	if (rightText != "")
+		output += " " + rightText + "";
+
 	output += "\n";
+
+	if (postText != "")
+		output += postText + "\n";
 
 	output += "\n";
 
@@ -154,34 +144,41 @@ std::string Declaration::GetExternalDeclarationStr() const
 {
 	std::string output;
 
+	if (preText != "")
+		output += preText + "\n";
+
 	if (IsStatic())
+	{
 		output += "static ";
-
-	bool includeArraySize = (IsStatic() || forceArrayCnt);
-
-	if (includeArraySize)
-	{
-		if (arrayItemCntStr != "")
-			output += StringHelper::Sprintf("%s %s[%s] = ", declType.c_str(), declName.c_str(),
-			                                arrayItemCntStr.c_str());
-		else
-			output += StringHelper::Sprintf("%s %s[%i] = ", declType.c_str(), declName.c_str(),
-			                                arrayItemCnt);
 	}
+
+	if (arrayItemCntStr != "" && (IsStatic() || forceArrayCnt))
+		output += StringHelper::Sprintf("%s %s[%s] = ", varType.c_str(), varName.c_str(),
+		                                arrayItemCntStr.c_str());
+	else if (arrayItemCnt != 0 && (IsStatic() || forceArrayCnt))
+		output +=
+			StringHelper::Sprintf("%s %s[%i] = ", varType.c_str(), varName.c_str(), arrayItemCnt);
 	else
-	{
-		output += StringHelper::Sprintf("%s %s[] = ", declType.c_str(), declName.c_str());
-	}
+		output += StringHelper::Sprintf("%s %s[] = ", varType.c_str(), varName.c_str());
 
 	output += StringHelper::Sprintf("{\n#include \"%s\"\n};", includePath.c_str());
-	output += "\n\n";
+
+	if (rightText != "")
+		output += " " + rightText + "";
+
+	output += "\n";
+
+	if (postText != "")
+		output += postText + "\n";
+
+	output += "\n";
 
 	return output;
 }
 
 std::string Declaration::GetExternStr() const
 {
-	if (IsStatic() || declType == "" || isUnaccounted)
+	if (IsStatic() || varType == "" || isUnaccounted)
 	{
 		return "";
 	}
@@ -195,28 +192,19 @@ std::string Declaration::GetExternStr() const
 	{
 		if (arrayItemCntStr != "" && (IsStatic() || forceArrayCnt))
 		{
-			return StringHelper::Sprintf("extern %s %s[%s];\n", declType.c_str(), declName.c_str(),
+			return StringHelper::Sprintf("extern %s %s[%s];\n", varType.c_str(), varName.c_str(),
 			                             arrayItemCntStr.c_str());
 		}
 		else if (arrayItemCnt != 0 && (IsStatic() || forceArrayCnt))
 		{
-			return StringHelper::Sprintf("extern %s %s[%i];\n", declType.c_str(), declName.c_str(),
+			return StringHelper::Sprintf("extern %s %s[%i];\n", varType.c_str(), varName.c_str(),
 			                             arrayItemCnt);
 		}
 		else
-			return StringHelper::Sprintf("extern %s %s[];\n", declType.c_str(), declName.c_str());
+			return StringHelper::Sprintf("extern %s %s[];\n", varType.c_str(), varName.c_str());
 	}
 
-	return StringHelper::Sprintf("extern %s %s;\n", declType.c_str(), declName.c_str());
-}
-
-std::string Declaration::GetDefinesStr() const
-{
-	if (IsStatic() || (declType == ""))
-	{
-		return "";
-	}
-	return StringHelper::Sprintf("%s", defines.c_str());
+	return StringHelper::Sprintf("extern %s %s;\n", varType.c_str(), varName.c_str());
 }
 
 std::string Declaration::GetStaticForwardDeclarationStr() const
@@ -234,15 +222,15 @@ std::string Declaration::GetStaticForwardDeclarationStr() const
 
 		if (arrayItemCntStr != "")
 		{
-			return StringHelper::Sprintf("static %s %s[%s];\n", declType.c_str(), declName.c_str(),
+			return StringHelper::Sprintf("static %s %s[%s];\n", varType.c_str(), varName.c_str(),
 			                             arrayItemCntStr.c_str());
 		}
 		else
 		{
-			return StringHelper::Sprintf("static %s %s[%i];\n", declType.c_str(), declName.c_str(),
+			return StringHelper::Sprintf("static %s %s[%i];\n", varType.c_str(), varName.c_str(),
 			                             arrayItemCnt);
 		}
 	}
 
-	return StringHelper::Sprintf("static %s %s;\n", declType.c_str(), declName.c_str());
+	return StringHelper::Sprintf("static %s %s;\n", varType.c_str(), varName.c_str());
 }

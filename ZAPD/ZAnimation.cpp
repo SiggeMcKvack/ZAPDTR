@@ -132,8 +132,9 @@ void ZNormalAnimation::DeclareReferences(const std::string& prefix)
 	{
 		for (size_t i = 0; i < rotationIndices.size(); i++)
 		{
-			indicesStr += StringHelper::Sprintf("    { 0x%04X, 0x%04X, 0x%04X },", rotationIndices[i].x,
-				                            rotationIndices[i].y, rotationIndices[i].z);
+			indicesStr +=
+				StringHelper::Sprintf("    { 0x%04X, 0x%04X, 0x%04X },", rotationIndices[i].x,
+			                          rotationIndices[i].y, rotationIndices[i].z);
 
 			if (i != (rotationIndices.size() - 1))
 				indicesStr += "\n";
@@ -176,10 +177,7 @@ size_t ZLinkAnimation::GetRawDataSize() const
 
 std::string ZLinkAnimation::GetSourceTypeName() const
 {
-	if (Globals::Instance->game == ZGame::MM_RETAIL)
-		return "PlayerAnimationHeader";
-	else
-		return "LinkAnimationHeader";
+	return "LinkAnimationHeader";
 }
 
 void ZLinkAnimation::ParseRawData()
@@ -200,8 +198,8 @@ std::string ZLinkAnimation::GetBodySourceCode() const
 
 /* ZCurveAnimation */
 
-CurveInterpKnot::CurveInterpKnot(ZFile* parent, const std::vector<uint8_t>& rawData,
-                                 uint32_t fileOffset)
+TransformData::TransformData(ZFile* parent, const std::vector<uint8_t>& rawData,
+                             uint32_t fileOffset)
 	: parent(parent)
 {
 	unk_00 = BitConverter::ToUInt16BE(rawData, fileOffset + 0);
@@ -211,26 +209,26 @@ CurveInterpKnot::CurveInterpKnot(ZFile* parent, const std::vector<uint8_t>& rawD
 	unk_08 = BitConverter::ToFloatBE(rawData, fileOffset + 8);
 }
 
-CurveInterpKnot::CurveInterpKnot(ZFile* parent, const std::vector<uint8_t>& rawData,
-                                 uint32_t fileOffset, size_t index)
-	: CurveInterpKnot(parent, rawData, fileOffset + index * GetRawDataSize())
+TransformData::TransformData(ZFile* parent, const std::vector<uint8_t>& rawData,
+                             uint32_t fileOffset, size_t index)
+	: TransformData(parent, rawData, fileOffset + index * GetRawDataSize())
 {
 }
 
-std::string CurveInterpKnot::GetBody([[maybe_unused]] const std::string& prefix) const
+std::string TransformData::GetBody([[maybe_unused]] const std::string& prefix) const
 {
 	return StringHelper::Sprintf("0x%04X, 0x%04X, %i, %i, %ff", unk_00, unk_02, unk_04, unk_06,
 	                             unk_08);
 }
 
-size_t CurveInterpKnot::GetRawDataSize() const
+size_t TransformData::GetRawDataSize() const
 {
 	return 0x0C;
 }
 
-std::string CurveInterpKnot::GetSourceTypeName()
+std::string TransformData::GetSourceTypeName()
 {
-	return "CurveInterpKnot";
+	return "TransformData";
 }
 
 ZCurveAnimation::ZCurveAnimation(ZFile* nParent) : ZAnimation(nParent)
@@ -326,7 +324,7 @@ void ZCurveAnimation::DeclareReferences(const std::string& prefix)
 		}
 		else
 		{
-			decl->declBody = entryStr;
+			decl->text = entryStr;
 		}
 	}
 
@@ -357,7 +355,7 @@ void ZCurveAnimation::DeclareReferences(const std::string& prefix)
 		}
 		else
 		{
-			decl->declBody = entryStr;
+			decl->text = entryStr;
 		}
 	}
 
@@ -385,7 +383,7 @@ void ZCurveAnimation::DeclareReferences(const std::string& prefix)
 		}
 		else
 		{
-			decl->declBody = entryStr;
+			decl->text = entryStr;
 		}
 	}
 }
@@ -395,7 +393,7 @@ std::string ZCurveAnimation::GetBodySourceCode() const
 	std::string refIndexStr;
 	Globals::Instance->GetSegmentedPtrName(refIndex, parent, "u8", refIndexStr, parent->workerID);
 	std::string transformDataStr;
-	Globals::Instance->GetSegmentedPtrName(transformData, parent, "CurveInterpKnot",
+	Globals::Instance->GetSegmentedPtrName(transformData, parent, "TransformData",
 	                                       transformDataStr, parent->workerID);
 	std::string copyValuesStr;
 	Globals::Instance->GetSegmentedPtrName(copyValues, parent, "s16", copyValuesStr,
@@ -417,7 +415,7 @@ DeclarationAlignment ZCurveAnimation::GetDeclarationAlignment() const
 
 std::string ZCurveAnimation::GetSourceTypeName() const
 {
-	return "CurveAnimationHeader";
+	return "TransformUpdateIndex";
 }
 
 /* ZLegacyAnimation */
@@ -450,7 +448,7 @@ void ZLegacyAnimation::ParseRawData()
 		ptr = jointKeyOffset;
 		for (int32_t i = 0; i < limbCount + 1; i++)
 		{
-			LegacyJointKey key(parent);
+			JointKey key(parent);
 			key.ExtractFromFile(ptr);
 
 			jointKeyArray.push_back(key);
@@ -521,8 +519,10 @@ std::string ZLegacyAnimation::GetBodySourceCode() const
 
 	std::string frameDataName;
 	std::string jointKeyName;
-	Globals::Instance->GetSegmentedPtrName(frameData, parent, "s16", frameDataName, parent->workerID);
-	Globals::Instance->GetSegmentedPtrName(jointKey, parent, "LegacyJointKey", jointKeyName, parent->workerID);
+	Globals::Instance->GetSegmentedPtrName(frameData, parent, "s16", frameDataName,
+	                                       parent->workerID);
+	Globals::Instance->GetSegmentedPtrName(jointKey, parent, "JointKey", jointKeyName,
+	                                       parent->workerID);
 
 	body += StringHelper::Sprintf("\t%i, %i,\n", frameCount, limbCount);
 	body += StringHelper::Sprintf("\t%s,\n", frameDataName.c_str());
@@ -541,11 +541,11 @@ size_t ZLegacyAnimation::GetRawDataSize() const
 	return 0x0C;
 }
 
-LegacyJointKey::LegacyJointKey(ZFile* nParent) : ZResource(nParent)
+JointKey::JointKey(ZFile* nParent) : ZResource(nParent)
 {
 }
 
-void LegacyJointKey::ParseRawData()
+void JointKey::ParseRawData()
 {
 	ZResource::ParseRawData();
 
@@ -558,23 +558,23 @@ void LegacyJointKey::ParseRawData()
 	z = BitConverter::ToInt16BE(rawData, rawDataIndex + 0x0A);
 }
 
-std::string LegacyJointKey::GetBodySourceCode() const
+std::string JointKey::GetBodySourceCode() const
 {
 	return StringHelper::Sprintf("%6i, %6i, %6i, %6i, %6i, %6i", xMax, x, yMax, y, zMax, z);
 }
 
-std::string LegacyJointKey::GetSourceTypeName() const
+std::string JointKey::GetSourceTypeName() const
 {
-	return "LegacyJointKey";
+	return "JointKey";
 }
 
-ZResourceType LegacyJointKey::GetResourceType() const
+ZResourceType JointKey::GetResourceType() const
 {
 	// TODO
 	return ZResourceType::Error;
 }
 
-size_t LegacyJointKey::GetRawDataSize() const
+size_t JointKey::GetRawDataSize() const
 {
 	return 0x0C;
 }

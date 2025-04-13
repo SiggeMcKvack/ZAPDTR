@@ -21,7 +21,7 @@ void SetCsCamera::ParseRawData()
 	cameras.reserve(numCameras);
 	for (int32_t i = 0; i < numCameras; i++)
 	{
-		ActorCsCamInfo entry(parent->GetRawData(), currentPtr);
+		CsCameraEntry entry(parent->GetRawData(), currentPtr);
 		numPoints += entry.GetNumPoints();
 
 		currentPtr += entry.GetRawDataSize();
@@ -105,7 +105,8 @@ void SetCsCamera::DeclareReferences(const std::string& prefix)
 std::string SetCsCamera::GetBodySourceCode() const
 {
 	std::string listName;
-	Globals::Instance->GetSegmentedPtrName(cmdArg2, parent, "ActorCsCamInfo", listName, parent->workerID);
+	Globals::Instance->GetSegmentedPtrName(cmdArg2, parent, "CsCameraEntry", listName,
+	                                       parent->workerID);
 	return StringHelper::Sprintf("SCENE_CMD_ACTOR_CUTSCENE_CAM_LIST(%i, %s)", cameras.size(),
 	                             listName.c_str());
 }
@@ -120,7 +121,7 @@ RoomCommand SetCsCamera::GetRoomCommand() const
 	return RoomCommand::SetCsCamera;
 }
 
-ActorCsCamInfo::ActorCsCamInfo(const std::vector<uint8_t>& rawData, uint32_t rawDataIndex)
+CsCameraEntry::CsCameraEntry(const std::vector<uint8_t>& rawData, uint32_t rawDataIndex)
 	: baseOffset(rawDataIndex), type(BitConverter::ToInt16BE(rawData, rawDataIndex + 0)),
 	  numPoints(BitConverter::ToInt16BE(rawData, rawDataIndex + 2))
 {
@@ -128,27 +129,27 @@ ActorCsCamInfo::ActorCsCamInfo(const std::vector<uint8_t>& rawData, uint32_t raw
 	segmentOffset = GETSEGOFFSET(camAddress);
 }
 
-std::string ActorCsCamInfo::GetSourceTypeName() const
+std::string CsCameraEntry::GetSourceTypeName() const
 {
-	return "ActorCsCamInfo";
+	return "CsCameraEntry";
 }
 
-int32_t ActorCsCamInfo::GetRawDataSize() const
+int32_t CsCameraEntry::GetRawDataSize() const
 {
 	return 8;
 }
 
-int16_t ActorCsCamInfo::GetNumPoints() const
+int16_t CsCameraEntry::GetNumPoints() const
 {
 	return numPoints;
 }
 
-segptr_t ActorCsCamInfo::GetCamAddress() const
+segptr_t CsCameraEntry::GetCamAddress() const
 {
 	return camAddress;
 }
 
-uint32_t ActorCsCamInfo::GetSegmentOffset() const
+uint32_t CsCameraEntry::GetSegmentOffset() const
 {
 	return segmentOffset;
 }

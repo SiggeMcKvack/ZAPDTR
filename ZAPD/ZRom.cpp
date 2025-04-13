@@ -38,13 +38,11 @@ namespace fs = std::filesystem;
 #define OOT_OFF_PAL_GC_DBG2 0x12F70
 #define OOT_OFF_PAL_GC 0x7170
 #define OOT_OFF_PAL_MQ 0x7170
-#define OOT_OFF_JP_GC_CE 007170
+#define OOT_OFF_JP_GC_CE 0x7170
 #define OOT_OFF_CN_IQUE 0xB7A0
 #define OOT_OFF_TW_IQUE 0xB240
 
 #define MM_OFF_US_10 0x1A500
-#define MM_OFF_US_GC 0x1AE90
-#define MM_OFF_JP_GC 0x1AE90
 #define MM_OFF_JP_10 0x1C110
 #define MM_OFF_JP_11 0x1C050
 #define MM_OFF_DBG 0x24F60
@@ -68,11 +66,6 @@ namespace fs = std::filesystem;
 #define OOT_IQUE_CN 0xB1E1E07B
 #define UNKNOWN 0xFFFFFFFF
 
-#define MM_NTSC_10 0x5354631C
-#define MM_NTSC_10_UNCOMPRESSED 0xDA6983E7
-#define MM_NTSC_GC 0xB443EB08
-#define MM_NTSC_JP_GC 0x8473D0C1
-
 bool ZRom::IsMQ() {
     int crc = BitConverter::ToInt32BE(romData, 0x10);
     switch (crc) {
@@ -89,11 +82,6 @@ bool ZRom::IsMQ() {
         case OOT_PAL_GC_DBG2:
         case OOT_IQUE_CN:
         case OOT_IQUE_TW:
-        // MM - Always not MQ
-        case MM_NTSC_10:
-        case MM_NTSC_10_UNCOMPRESSED:
-		case MM_NTSC_GC:
-		case MM_NTSC_JP_GC:
         default:
             return false;
         case OOT_NTSC_JP_MQ:
@@ -127,7 +115,7 @@ ZRom::ZRom(std::string romPath)
 		break;
 	case OOT_NTSC_12:
 		version.version = "N64 NTSC 1.2";
-		version.listPath = "ntsc_oot.txt";
+		version.listPath = "ntsc_12_oot.txt";
 		version.offset = OOT_OFF_NTSC_12;
 		break;
 	case OOT_PAL_10:
@@ -200,26 +188,6 @@ ZRom::ZRom(std::string romPath)
 		version.listPath = "ique.txt";
 		version.offset = OOT_OFF_TW_IQUE;
 		break;
-	case MM_NTSC_10:
-		version.version = "MM US 1.0";
-		version.listPath = "mm.txt";
-		version.offset = MM_OFF_US_10;
-		break;
-	case MM_NTSC_10_UNCOMPRESSED:
-		version.version = "MM US 1.0";
-		version.listPath = "mm.txt";
-		version.offset = MM_OFF_US_10;
-		break;
-	case MM_NTSC_GC:
-		version.version = "MM US GC";
-		version.listPath = "mm_gc.txt";
-		version.offset = MM_OFF_US_GC;
-		break;
-	case MM_NTSC_JP_GC:
-		version.version = "MM JP GC";
-		version.listPath = "mm_gc_jp.txt";
-		version.offset = MM_OFF_JP_GC;
-		break;
 	}
 
 	auto path = StringHelper::Sprintf("%s/%s", Globals::Instance->fileListPath.string().c_str(), version.listPath.c_str());
@@ -228,23 +196,15 @@ ZRom::ZRom(std::string romPath)
 
     std::vector<uint8_t> decompressedData(1);
 
-	for (unsigned int i = 0; i < lines.size(); i++)
+	for (int i = 0; i < lines.size(); i++)
 	{
 		lines[i] = StringHelper::Strip(lines[i], "\r");
-		bool yarCompressed = false;
 		const int romOffset = version.offset + (DMA_ENTRY_SIZE * i);
 
 		const int virtStart = BitConverter::ToInt32BE(romData, romOffset + 0);
 		const int virtEnd = BitConverter::ToInt32BE(romData, romOffset + 4);
 		const int physStart = BitConverter::ToInt32BE(romData, romOffset + 8);
 		const int physEnd = BitConverter::ToInt32BE(romData, romOffset + 12);
-			// File Deleted
-		if (physEnd == 0xFFFFFFFF && physStart == 0xFFFFFFFF)
-		{
-			// MM has some other checks that we might need to do
-			//if (virtEnd - virtStart == 0)
-			continue;
-		}
 
 		const bool compressed = physEnd != 0;
 		int size = compressed ? physEnd - physStart : virtEnd - virtStart;
@@ -253,25 +213,12 @@ ZRom::ZRom(std::string romPath)
 		outData.resize(size);
 		memcpy(outData.data(), romData.data() + physStart, size);
 
-		if ((i >= 15 && i <= 20) || i == 22)
-		{
-			yarCompressed = true;
-		}
-
 		if (compressed)
 		{
 			int decSize = virtEnd - virtStart;
 			decompressedData = std::vector<uint8_t>();
 			decompressedData.resize(decSize);
 			yaz0_decode(outData.data(), decompressedData.data(), decSize);
-			files[lines[i]] = decompressedData;
-		}
-		else if (yarCompressed)
-		{
-			//int decSize = virtEnd - virtStart;
-			decompressedData = std::vector<uint8_t>();
-			decompressedData.resize(1024*1024); //TODO FIX THIS PLEASE
-			yaz0_decodeYarArchive(outData.data(), decompressedData.data(), size);
 			files[lines[i]] = decompressedData;
 		}
 		else

@@ -2,13 +2,13 @@
 
 #include "ZRoom/ZRoomCommand.h"
 
-class Spawn
+class EntranceEntry
 {
 public:
 	uint8_t startPositionIndex;
 	uint8_t roomToLoad;
 
-	Spawn(const std::vector<uint8_t>& rawData, uint32_t rawDataIndex);
+	EntranceEntry(const std::vector<uint8_t>& rawData, uint32_t rawDataIndex);
 
 	std::string GetBodySourceCode() const;
 };
@@ -16,7 +16,7 @@ public:
 class SetEntranceList : public ZRoomCommand
 {
 public:
-	std::vector<Spawn> entrances;
+	std::vector<EntranceEntry> entrances;
 
 	SetEntranceList(ZFile* nParent);
 

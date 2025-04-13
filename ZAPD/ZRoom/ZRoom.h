@@ -22,7 +22,7 @@ public:
 	ZRoom(ZFile* nParent);
 	virtual ~ZRoom();
 
-	void ExtractWithXML(tinyxml2::XMLElement* reader, uint32_t nRawDataIndex) override;
+	void ExtractFromXML(tinyxml2::XMLElement* reader, uint32_t nRawDataIndex) override;
 	void ExtractFromBinary(uint32_t nRawDataIndex, ZResourceType parentType);
 
 	void ParseXML(tinyxml2::XMLElement* reader) override;
@@ -37,6 +37,7 @@ public:
 	void GetSourceOutputCode(const std::string& prefix) override;
 
 	std::string GetDefaultName(const std::string& prefix) const override;
+	size_t GetDeclarationSizeFromNeighbor(uint32_t declarationAddress);
 	size_t GetCommandSizeFromNeighbor(ZRoomCommand* cmd);
 	ZRoomCommand* FindCommandOfType(RoomCommand cmdType);
 
@@ -45,5 +46,5 @@ public:
 	ZResourceType GetResourceType() const override;
 
 protected:
-	void SyotesRoomFix();
+	void SyotesRoomHack();
 };

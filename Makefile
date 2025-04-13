@@ -8,18 +8,6 @@ COPYCHECK_ARGS ?=
 LLD ?= 0
 WERROR ?= 0
 
-# On MacOS 10.14, use boost::filesystem, because
-# the system doesn't supply std::filesystem.
-ifneq ($(OS),Windows_NT)
-    ifeq ($(shell uname -s),Darwin)
-        MACOS_VERSION := $(shell sw_vers -productVersion | cut -d . -f 1,2)
-        ifeq ($(MACOS_VERSION),10.14)
-            USE_BOOST_FS ?= 1
-        endif
-    endif
-endif
-USE_BOOST_FS ?= 0
-
 # Use clang++ if available, else use g++
 ifeq ($(shell command -v clang++ >/dev/null 2>&1; echo $$?),0)
   CXX := clang++
@@ -57,11 +45,6 @@ endif
 # CXXFLAGS += -DTEXTURE_DEBUG
 
 LDFLAGS := -lm -ldl -lpng
-
-ifneq ($(USE_BOOST_FS),0)
-  CXXFLAGS += -DUSE_BOOST_FS
-  LDFLAGS += -lboost_filesystem
-endif
 
 # Use LLD if available. Set LLD=0 to not use it
 ifeq ($(shell command -v ld.lld >/dev/null 2>&1; echo $$?),0)
@@ -123,7 +106,7 @@ clean:
 rebuild: clean all
 
 format:
-	clang-format-14 -i $(ZAPD_CPP_FILES) $(ZAPD_H_FILES)
+	clang-format-11 -i $(ZAPD_CPP_FILES) $(ZAPD_H_FILES)
 	$(MAKE) -C ZAPDUtils format
 	$(MAKE) -C ExporterTest format
 

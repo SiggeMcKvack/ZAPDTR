@@ -15,7 +15,7 @@ void SetMinimapList::ParseRawData()
 	ZRoomCommand::ParseRawData();
 	listSegmentAddr = BitConverter::ToInt32BE(parent->GetRawData(), segmentOffset);
 	listSegmentOffset = GETSEGOFFSET(listSegmentAddr);
-	scale = BitConverter::ToInt16BE(parent->GetRawData(), segmentOffset + 4);
+	unk4 = BitConverter::ToInt32BE(parent->GetRawData(), segmentOffset + 4);
 
 	uint32_t currentPtr = listSegmentOffset;
 
@@ -53,8 +53,9 @@ void SetMinimapList::DeclareReferences(const std::string& prefix)
 
 	{
 		std::string listName;
-		Globals::Instance->GetSegmentedPtrName(listSegmentAddr, parent, "MinimapEntry", listName, parent->workerID);
-		std::string declaration = StringHelper::Sprintf("\n\t%s, %d\n", listName.c_str(), scale);
+		Globals::Instance->GetSegmentedPtrName(listSegmentAddr, parent, "MinimapEntry", listName,
+		                                       parent->workerID);
+		std::string declaration = StringHelper::Sprintf("\n\t%s, 0x%08X\n", listName.c_str(), unk4);
 
 		parent->AddDeclaration(
 			segmentOffset, DeclarationAlignment::Align4, 8, "MinimapList",

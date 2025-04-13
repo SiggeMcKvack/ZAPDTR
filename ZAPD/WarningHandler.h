@@ -81,7 +81,6 @@ enum class WarningType
 	InvalidExtractedData,
 	MissingSegment,
 	HardcodedPointer,
-	HardcodedGenericPointer,
 	NotImplemented,
 	Max,
 };

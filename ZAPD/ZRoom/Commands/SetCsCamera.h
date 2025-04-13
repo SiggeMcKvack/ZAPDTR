@@ -3,10 +3,10 @@
 #include "ZRoom/ZRoomCommand.h"
 #include "ZVector.h"
 
-class ActorCsCamInfo
+class CsCameraEntry
 {
 public:
-	ActorCsCamInfo(const std::vector<uint8_t>& rawData, uint32_t rawDataIndex);
+	CsCameraEntry(const std::vector<uint8_t>& rawData, uint32_t rawDataIndex);
 
 	std::string GetSourceTypeName() const;
 	int32_t GetRawDataSize() const;
@@ -25,7 +25,7 @@ public:
 class SetCsCamera : public ZRoomCommand
 {
 public:
-	std::vector<ActorCsCamInfo> cameras;
+	std::vector<CsCameraEntry> cameras;
 	std::vector<ZVector> points;
 
 	SetCsCamera(ZFile* nParent);

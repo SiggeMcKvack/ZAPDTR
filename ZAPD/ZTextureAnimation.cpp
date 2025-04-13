@@ -141,8 +141,8 @@ void TextureScrollingParams::ParseRawData()
 
 	for (int i = 0; i < count; i++)
 	{
-		rows[i].xStep = BitConverter::ToInt8BE(rawData, rawDataIndex + 4 * i);
-		rows[i].yStep = BitConverter::ToInt8BE(rawData, rawDataIndex + 4 * i + 1);
+		rows[i].xStep = BitConverter::ToUInt8BE(rawData, rawDataIndex + 4 * i);
+		rows[i].yStep = BitConverter::ToUInt8BE(rawData, rawDataIndex + 4 * i + 1);
 		rows[i].width = BitConverter::ToUInt8BE(rawData, rawDataIndex + 4 * i + 2);
 		rows[i].height = BitConverter::ToUInt8BE(rawData, rawDataIndex + 4 * i + 3);
 	}
@@ -496,7 +496,6 @@ std::string TextureCyclingParams::GetBodySourceCode() const
 
 ZTextureAnimation::ZTextureAnimation(ZFile* nParent) : ZResource(nParent)
 {
-	genOTRDef = true;
 }
 
 /**
@@ -575,7 +574,6 @@ void ZTextureAnimation::DeclareReferences(const std::string& prefix)
 						count = 2;
 					}
 					params = new TextureScrollingParams(parent);
-					params->type = entry.type;
 					params->ExtractFromBinary(paramsOffset, count);
 					break;
 
@@ -589,7 +587,6 @@ void ZTextureAnimation::DeclareReferences(const std::string& prefix)
 
 				case TextureAnimationParamsType::TextureCycle:
 					params = new TextureCyclingParams(parent);
-					params->type = entry.type;
 					params->ExtractFromBinary(paramsOffset);
 					break;
 
@@ -638,12 +635,6 @@ std::string ZTextureAnimation::GetDefaultName(const std::string& prefix) const
 {
 	return StringHelper::Sprintf("%sTexAnim_%06X", prefix.c_str(), rawDataIndex);
 }
-
-//std::string ZTextureAnimation::GetSourceOutputHeader(const std::string& prefix,
-//                                                     std::set<std::string>* nameSet)
-//{
-//	return std::string();
-//}
 
 Declaration* ZTextureAnimation::DeclareVar(const std::string& prefix, const std::string& bodyStr)
 {

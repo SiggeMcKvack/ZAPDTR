@@ -23,8 +23,6 @@ public:
 
 	void ParseRawData() override;
 
-	void ParseOoT();
-
 	std::string GetSourceTypeName() const override;
 	ZResourceType GetResourceType() const override;
 

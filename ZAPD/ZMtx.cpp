@@ -8,7 +8,6 @@ REGISTER_ZFILENODE(Mtx, ZMtx);
 
 ZMtx::ZMtx(ZFile* nParent) : ZResource(nParent)
 {
-	genOTRDef = true;
 }
 
 void ZMtx::ParseRawData()

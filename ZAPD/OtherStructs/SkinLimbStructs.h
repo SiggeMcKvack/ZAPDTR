@@ -7,17 +7,19 @@
 #include "ZResource.h"
 #include "ZDisplayList.h"
 
+// TODO: check if more types exists
 enum class ZLimbSkinType
 {
-	SkinType_Null,          // SkinLimb segment = NULL
-	SkinType_Animated = 4,  // SkinLimb segment = SkinAnimatedLimbData*
-	SkinType_Normal = 11,   // SkinLimb segment = Gfx*
+	SkinType_0,           // Segment = 0
+	SkinType_4 = 4,       // Segment = segmented address // Struct_800A5E28
+	SkinType_5 = 5,       // Segment = 0
+	SkinType_DList = 11,  // Segment = DList address
 };
 
-class SkinVertex : public ZResource
+class Struct_800A57C0 : public ZResource
 {
 public:
-	SkinVertex(ZFile* nParent);
+	Struct_800A57C0(ZFile* nParent);
 
 	void ParseRawData() override;
 
@@ -29,19 +31,19 @@ public:
 	size_t GetRawDataSize() const override;
 
 public:
-	uint16_t index;
-	int16_t s;
-	int16_t t;
-	int8_t normX;
-	int8_t normY;
-	int8_t normZ;
-	uint8_t alpha;
+	uint16_t unk_0;
+	int16_t unk_2;
+	int16_t unk_4;
+	int8_t unk_6;
+	int8_t unk_7;
+	int8_t unk_8;
+	uint8_t unk_9;
 };
 
-class SkinTransformation : public ZResource
+class Struct_800A598C_2 : public ZResource
 {
 public:
-	SkinTransformation(ZFile* nParent);
+	Struct_800A598C_2(ZFile* nParent);
 
 	void ParseRawData() override;
 
@@ -53,42 +55,17 @@ public:
 	size_t GetRawDataSize() const override;
 
 public:
-	uint8_t limbIndex;
+	uint8_t unk_0;
 	int16_t x;
 	int16_t y;
 	int16_t z;
-	uint8_t scale;
+	uint8_t unk_8;
 };
 
-class SkinLimbModif : public ZResource
+class Struct_800A598C : public ZResource
 {
 public:
-	SkinLimbModif(ZFile* nParent);
-
-	void ParseRawData() override;
-	void DeclareReferences(const std::string& prefix) override;
-
-	std::string GetBodySourceCode() const override;
-
-	std::string GetSourceTypeName() const override;
-	ZResourceType GetResourceType() const override;
-
-	size_t GetRawDataSize() const override;
-	
-	uint16_t vtxCount;				// Number of vertices in this modif entry
-	uint16_t transformCount;		// Length of limbTransformations
-	uint16_t unk_4;					// 0 or 1, used as an index for limbTransformations
-	segptr_t skinVertices;			// SkinVertex*
-	segptr_t limbTransformations;	// SkinTransformation*
-
-	std::vector<SkinVertex> skinVertices_arr;
-	std::vector<SkinTransformation> limbTransformations_arr;
-};
-
-class SkinAnimatedLimbData : public ZResource
-{
-public:
-	SkinAnimatedLimbData(ZFile* nParent);
+	Struct_800A598C(ZFile* nParent);
 
 	void ParseRawData() override;
 	void DeclareReferences(const std::string& prefix) override;
@@ -101,11 +78,37 @@ public:
 	size_t GetRawDataSize() const override;
 
 public:
-	uint16_t totalVtxCount;
-	uint16_t limbModifCount;     // Length of limbModifications
-	segptr_t limbModifications;  // SkinLimbModif*
-	segptr_t dlist;              // Gfx*
+	uint16_t unk_0;  // Length of unk_8
+	uint16_t unk_2;  // Length of unk_C
+	uint16_t unk_4;  // 0 or 1 // Used as an index for unk_C
+	segptr_t unk_8;  // Struct_800A57C0*
+	segptr_t unk_C;  // Struct_800A598C_2*
 
-	std::vector<SkinLimbModif> limbModifications_arr;
-	// ZDisplayList* unk_8_dlist = nullptr;
+	std::vector<Struct_800A57C0> unk_8_arr;
+	std::vector<Struct_800A598C_2> unk_C_arr;
+};
+
+class Struct_800A5E28 : public ZResource
+{
+public:
+	Struct_800A5E28(ZFile* nParent);
+
+	void ParseRawData() override;
+	void DeclareReferences(const std::string& prefix) override;
+
+	std::string GetBodySourceCode() const override;
+
+	std::string GetSourceTypeName() const override;
+	ZResourceType GetResourceType() const override;
+
+	size_t GetRawDataSize() const override;
+
+public:
+	uint16_t unk_0;  // Vtx count
+	uint16_t unk_2;  // Length of unk_4
+	segptr_t unk_4;  // Struct_800A598C*
+	segptr_t unk_8;  // Gfx*
+
+	std::vector<Struct_800A598C> unk_4_arr;
+	ZDisplayList* unk_8_dlist = nullptr;
 };
