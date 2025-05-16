@@ -1,7 +1,7 @@
 #include "CrashHandler.h"
 #include "Utils/StringHelper.h"
 
-#if __has_include(<unistd.h>)
+#if __has_include(<unistd.h>) && !defined(__ANDROID__)
 #define HAS_POSIX 1
 #else
 #define HAS_POSIX 0
@@ -198,7 +198,7 @@ void CrashHandler_Init()
 	signal(SIGABRT, ErrorHandler);
 #elif defined(_MSC_VER)
 	SetUnhandledExceptionFilter(seh_filter);
-#else
+#elif !defined(__ANDROID__)
 	HANDLE_WARNING(WarningType::Always,
 	               "tried to set error handler, but this ZAPD build lacks support for one", "");
 #endif
