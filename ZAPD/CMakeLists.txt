@@ -340,7 +340,29 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	set(CMAKE_FIND_FRAMEWORK LAST)
 endif()
-find_package(PNG REQUIRED)
+
+# Android: fetch libpng since it's not available via system
+if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+    include(FetchContent)
+    find_package(ZLIB REQUIRED)
+    set(PNG_SHARED OFF CACHE BOOL "" FORCE)
+    set(PNG_TESTS OFF CACHE BOOL "" FORCE)
+    set(PNG_TOOLS OFF CACHE BOOL "" FORCE)
+    set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        libpng
+        GIT_REPOSITORY https://github.com/glennrp/libpng.git
+        GIT_TAG v1.6.43
+    )
+    FetchContent_MakeAvailable(libpng)
+    set(PNG_FOUND TRUE CACHE BOOL "" FORCE)
+    set(PNG_PNG_INCLUDE_DIR "${libpng_SOURCE_DIR};${libpng_BINARY_DIR}" CACHE STRING "" FORCE)
+    if(NOT TARGET PNG::PNG)
+        add_library(PNG::PNG ALIAS png_static)
+    endif()
+else()
+    find_package(PNG REQUIRED)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libultraship/src/resource
@@ -438,10 +460,17 @@ endif()
 ################################################################################
 # Dependencies
 ################################################################################
-add_dependencies(${PROJECT_NAME}
-    OTRExporter
-    libultraship
-)
+if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+    # Android doesn't use OTRExporter - assets extracted on-device
+    add_dependencies(${PROJECT_NAME}
+        libultraship
+    )
+else()
+    add_dependencies(${PROJECT_NAME}
+        OTRExporter
+        libultraship
+    )
+endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 #	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
@@ -476,6 +505,14 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "libultraship;"
         PNG::PNG
+    )
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    set(ADDITIONAL_LIBRARY_DEPENDENCIES
+        "libultraship;"
+        PNG::PNG
+        Threads::Threads
     )
 else()
 	set(THREADS_PREFER_PTHREAD_FLAG ON)
