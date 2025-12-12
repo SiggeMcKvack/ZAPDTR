@@ -262,8 +262,12 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
 
-add_executable(ZAPD ExecutableMain.cpp)
-target_link_libraries(ZAPD ${PROJECT_NAME})
+
+# Don't build ZAPD executable on Android (assets are extracted on-device)
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Android")
+    add_executable(ZAPD ExecutableMain.cpp)
+    target_link_libraries(ZAPD ${PROJECT_NAME})
+endif()
 
 
 
@@ -460,17 +464,10 @@ endif()
 ################################################################################
 # Dependencies
 ################################################################################
-if(CMAKE_SYSTEM_NAME STREQUAL "Android")
-    # Android doesn't use OTRExporter - assets extracted on-device
-    add_dependencies(${PROJECT_NAME}
-        libultraship
-    )
-else()
-    add_dependencies(${PROJECT_NAME}
-        OTRExporter
-        libultraship
-    )
-endif()
+add_dependencies(${PROJECT_NAME}
+    OTRExporter
+    libultraship
+)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 #	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
@@ -510,6 +507,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
+        -Wl,--whole-archive $<TARGET_LINKER_FILE_DIR:OTRExporter>/$<TARGET_LINKER_FILE_NAME:OTRExporter> -Wl,--no-whole-archive
         "libultraship;"
         PNG::PNG
         Threads::Threads
